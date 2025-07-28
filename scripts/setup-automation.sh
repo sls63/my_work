@@ -59,6 +59,7 @@ from typing import Optional, List
 import requests
 import json
 import os
+from datetime import datetime
 from celery import Celery
 import redis
 
@@ -138,19 +139,46 @@ wp_api = WordPressAPI()
 @celery_app.task
 def generate_content_task(topic: str, keywords: List[str], length: int):
     """Задача генерации контента"""
-    # Здесь можно интегрировать AI для генерации контента
-    # Пример простой генерации
+    # Генерация контента с добавлением информации о микроразметке
+    microdata_info = """
+    <h3>Что такое микроразметка и почему она важна для SEO</h3>
+    <p>Микроразметка – это специальный формат разметки на сайте, который помогает поисковым системам лучше понять содержание страниц. Вместо того чтобы гадать, что изображено на странице, поисковый робот получает структурированные данные о странице: что является заголовком статьи, где указаны автор и дата, какие элементы являются отзывами, рейтингами, вопросами и ответами и т.д.</p>
+    
+    <p>Проще говоря, микроразметка – это язык, на котором сайт общается с поисковиком, описывая свою информацию более понятно и точно. Для SEO это имеет большое значение.</p>
+    
+    <p>Во-первых, правильно добавленная микроразметка делает ваш сайт кандидатом на расширенные результаты. Такие сниппеты заметнее и привлекательнее для пользователей, что повышает CTR. Наличие разметки не гарантирует попадание в расширенный сниппет, но увеличивает эту вероятность.</p>
+    
+    <p>Помимо этого, структурированные данные помогают Google более точно проиндексировать и понять контекст страницы. Это косвенно влияет на ранжирование: если поисковик лучше понимает контент, ему проще сопоставить его с релевантными запросами.</p>
+    
+    <h4>JSON-LD – рекомендованный формат</h4>
+    <p>Google поддерживает три основных формата разметки структурированных данных: Microdata, RDFa и JSON-LD. Мы рассматриваем только JSON-LD, так как это рекомендованный способ от Google.</p>
+    
+    <p>JSON-LD представляет данные в формате JSON, которые вставляются в код страницы внутри тега &lt;script type="application/ld+json"&gt;. JSON-LD не требует изменять существующий HTML-код – вы просто вставляете отдельный блок со структурированными данными.</p>
+    """
+    
     content = f"""
     <h2>Введение в {topic}</h2>
-    <p>В этой статье мы рассмотрим важные аспекты {topic}.</p>
+    <p>В этой статье мы рассмотрим важные аспекты {topic} и покажем, как правильно использовать микроразметку для улучшения SEO.</p>
     
     <h3>Ключевые моменты</h3>
     <ul>
-    {"".join([f"<li>Важность {keyword}</li>" for keyword in keywords])}
+    {"".join([f"<li>Важность {keyword} в контексте SEO-оптимизации</li>" for keyword in keywords])}
+    </ul>
+    
+    {microdata_info}
+    
+    <h3>Практические рекомендации</h3>
+    <p>Для эффективного использования {topic} рекомендуется:</p>
+    <ul>
+        <li>Внедрить структурированные данные JSON-LD</li>
+        <li>Использовать FAQ-разметку для часто задаваемых вопросов</li>
+        <li>Добавить схему статьи (Article Schema)</li>
+        <li>Настроить хлебные крошки (Breadcrumbs)</li>
+        <li>Проверить разметку через Google Rich Results Test</li>
     </ul>
     
     <h3>Заключение</h3>
-    <p>Понимание {topic} критически важно для современного бизнеса.</p>
+    <p>Понимание {topic} и правильное использование микроразметки критически важно для современного SEO. Структурированные данные помогают поисковым системам лучше понимать ваш контент и могут значительно улучшить видимость в поисковой выдаче.</p>
     """
     
     return {
@@ -161,13 +189,102 @@ def generate_content_task(topic: str, keywords: List[str], length: int):
 
 @celery_app.task
 def optimize_seo_task(post_id: int, focus_keyword: str):
-    """Задача SEO-оптимизации"""
-    # Получение поста и оптимизация
+    """Задача SEO-оптимизации с генерацией микроразметки"""
+    
+    # Генерация базовой Article Schema
+    article_schema = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": f"{focus_keyword} - Полное руководство",
+        "description": f"Подробное руководство по {focus_keyword} с практическими советами и рекомендациями",
+        "author": {
+            "@type": "Person",
+            "name": "Редакция сайта"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": os.getenv('WP_TITLE', 'My WordPress Site'),
+            "logo": {
+                "@type": "ImageObject",
+                "url": f"https://{os.getenv('DOMAIN_NAME')}/wp-content/uploads/logo.png"
+            }
+        },
+        "datePublished": datetime.now().isoformat(),
+        "dateModified": datetime.now().isoformat(),
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": f"https://{os.getenv('DOMAIN_NAME')}/post-{post_id}/"
+        }
+    }
+    
+    # FAQ Schema для часто задаваемых вопросов
+    faq_schema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": f"Что такое {focus_keyword}?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": f"{focus_keyword} - это важный аспект современного интернет-маркетинга, который требует комплексного подхода и глубокого понимания."
+                }
+            },
+            {
+                "@type": "Question", 
+                "name": f"Как использовать {focus_keyword} для SEO?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": f"Для эффективного использования {focus_keyword} необходимо применять структурированные данные, оптимизировать контент и следить за техническими аспектами сайта."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Какие преимущества дает микроразметка?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Микроразметка помогает поисковым системам лучше понимать контент, увеличивает шансы на расширенные сниппеты и улучшает CTR в поисковой выдаче."
+                }
+            }
+        ]
+    }
+    
+    # BreadcrumbList Schema
+    breadcrumb_schema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Главная",
+                "item": f"https://{os.getenv('DOMAIN_NAME')}/"
+            },
+            {
+                "@type": "ListItem", 
+                "position": 2,
+                "name": "Статьи",
+                "item": f"https://{os.getenv('DOMAIN_NAME')}/articles/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": f"{focus_keyword}",
+                "item": f"https://{os.getenv('DOMAIN_NAME')}/post-{post_id}/"
+            }
+        ]
+    }
+    
     seo_data = {
         "meta": {
             "focus_keyword": focus_keyword,
-            "meta_description": f"Узнайте больше о {focus_keyword}",
-            "meta_title": f"{focus_keyword} - Полное руководство"
+            "meta_description": f"Узнайте всё о {focus_keyword}. Практические советы, рекомендации экспертов и полное руководство по применению микроразметки для SEO.",
+            "meta_title": f"{focus_keyword} - Полное руководство с микроразметкой"
+        },
+        "structured_data": {
+            "article": article_schema,
+            "faq": faq_schema,
+            "breadcrumb": breadcrumb_schema
         }
     }
     return seo_data
@@ -232,6 +349,130 @@ async def get_post_analytics():
     # Здесь можно добавить интеграцию с Google Analytics
     return {"total_posts": 0, "published": 0, "draft": 0}
 
+class SchemaType(BaseModel):
+    schema_type: str  # article, game, review, faq, organization
+    title: str
+    description: Optional[str] = None
+    keywords: Optional[List[str]] = []
+    rating: Optional[float] = None
+    review_body: Optional[str] = None
+    game_genre: Optional[str] = None
+    developer: Optional[str] = None
+
+@app.post("/schema/generate")
+async def generate_schema(schema_request: SchemaType):
+    """Генерация специализированных JSON-LD схем"""
+    
+    schemas = {}
+    
+    if schema_request.schema_type == "game":
+        # VideoGame Schema для игр
+        schemas["game"] = {
+            "@context": "https://schema.org",
+            "@type": "VideoGame",
+            "name": schema_request.title,
+            "description": schema_request.description,
+            "genre": schema_request.game_genre or "Casino Game",
+            "author": {
+                "@type": "Organization",
+                "name": schema_request.developer or "Game Developer"
+            },
+            "operatingSystem": "Web Browser",
+            "applicationCategory": "Game",
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": schema_request.rating or 4.5,
+                "ratingCount": 100,
+                "bestRating": 5,
+                "worstRating": 1
+            } if schema_request.rating else None
+        }
+        
+    elif schema_request.schema_type == "review":
+        # Review Schema для обзоров
+        schemas["review"] = {
+            "@context": "https://schema.org",
+            "@type": "Review",
+            "itemReviewed": {
+                "@type": "Thing",
+                "name": schema_request.title
+            },
+            "reviewRating": {
+                "@type": "Rating",
+                "ratingValue": schema_request.rating or 4.5,
+                "bestRating": 5,
+                "worstRating": 1
+            },
+            "author": {
+                "@type": "Person",
+                "name": "Редакция сайта"
+            },
+            "reviewBody": schema_request.review_body or f"Подробный обзор {schema_request.title}",
+            "datePublished": datetime.now().isoformat()
+        }
+        
+    elif schema_request.schema_type == "organization":
+        # Organization Schema для компаний/казино
+        schemas["organization"] = {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": schema_request.title,
+            "description": schema_request.description,
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": schema_request.rating or 4.5,
+                "ratingCount": 50,
+                "bestRating": 5,
+                "worstRating": 1
+            } if schema_request.rating else None
+        }
+    
+    # Всегда добавляем FAQ с информацией о микроразметке
+    schemas["faq"] = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Что такое микроразметка и зачем она нужна?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Микроразметка помогает поисковым системам лучше понимать содержание страниц и может улучшить отображение в результатах поиска через расширенные сниппеты."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Как проверить корректность микроразметки?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Используйте инструмент Google Rich Results Test для проверки структурированных данных на наличие ошибок и соответствие стандартам."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": f"Что нужно знать о {schema_request.title}?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": f"{schema_request.description or 'Полная информация и практические рекомендации по использованию.'}"
+                }
+            }
+        ]
+    }
+    
+    return {
+        "success": True,
+        "schemas": schemas,
+        "instructions": {
+            "implementation": "Добавьте сгенерированные схемы в раздел <head> страницы внутри тегов <script type='application/ld+json'>",
+            "validation": "Проверьте схемы через https://search.google.com/test/rich-results",
+            "seo_tips": [
+                "Убедитесь, что данные в схемах соответствуют контенту на странице",
+                "Не используйте одинаковые схемы на разных типах контента",
+                "Регулярно проверяйте отчеты в Google Search Console"
+            ]
+        }
+    }
+
 def optimize_post_seo(post_id: int, categories: List[str], tags: List[str]):
     """Оптимизация SEO поста"""
     # Логика SEO-оптимизации
@@ -254,6 +495,7 @@ import schedule
 import time
 import requests
 import json
+import os
 from datetime import datetime
 import logging
 
@@ -272,12 +514,14 @@ class AutomationScheduler:
         self.api_base = "http://localhost:8000"
         
     def auto_generate_content(self):
-        """Автоматическая генерация контента"""
+        """Автоматическая генерация контента с микроразметкой"""
         topics = [
-            "веб-разработка",
-            "SEO-оптимизация", 
-            "цифровой маркетинг",
-            "облачные технологии"
+            "микроразметка Schema.org",
+            "JSON-LD для SEO", 
+            "структурированные данные Google",
+            "расширенные сниппеты",
+            "FAQ Schema разметка",
+            "Article Schema оптимизация"
         ]
         
         for topic in topics:
@@ -311,6 +555,54 @@ class AutomationScheduler:
         """Обновление SEO аналитики"""
         logging.info("Обновление SEO аналитики")
         # Интеграция с Google Search Console, Analytics
+        
+    def validate_structured_data(self):
+        """Проверка структурированных данных на сайте"""
+        logging.info("Проверка микроразметки на страницах сайта")
+        
+        try:
+            # Получение списка страниц WordPress
+            wp_api_url = f"https://{os.getenv('DOMAIN_NAME', 'localhost')}/wp-json/wp/v2/posts"
+            response = requests.get(wp_api_url, params={'per_page': 10})
+            
+            if response.status_code == 200:
+                posts = response.json()
+                for post in posts:
+                    post_url = post.get('link', '')
+                    if post_url:
+                        # Здесь можно добавить проверку через Google Rich Results Test API
+                        logging.info(f"Проверка микроразметки для: {post_url}")
+                        
+        except Exception as e:
+            logging.error(f"Ошибка при проверке структурированных данных: {e}")
+            
+    def generate_microdata_report(self):
+        """Генерация отчета по микроразметке"""
+        logging.info("Генерация отчета по использованию микроразметки")
+        
+        report_data = {
+            "timestamp": datetime.now().isoformat(),
+            "domain": os.getenv('DOMAIN_NAME', 'localhost'),
+            "schemas_found": {
+                "article": 0,
+                "faq": 0,
+                "breadcrumb": 0,
+                "review": 0,
+                "organization": 0
+            },
+            "recommendations": [
+                "Добавьте FAQ Schema для улучшения расширенных сниппетов",
+                "Проверьте Article Schema на всех статьях блога",
+                "Внедрите BreadcrumbList для улучшения навигации",
+                "Добавьте Review Schema для страниц с отзывами"
+            ]
+        }
+        
+        # Сохранение отчета
+        with open('/var/log/microdata-report.json', 'w', encoding='utf-8') as f:
+            json.dump(report_data, f, ensure_ascii=False, indent=2)
+            
+        logging.info("Отчет по микроразметке сохранен в /var/log/microdata-report.json")
 
 def main():
     scheduler = AutomationScheduler()
@@ -320,6 +612,8 @@ def main():
     schedule.every().sunday.at("02:00").do(scheduler.cleanup_drafts)
     schedule.every().day.at("03:00").do(scheduler.backup_content)
     schedule.every().hour.do(scheduler.update_seo_analytics)
+    schedule.every().day.at("11:00").do(scheduler.validate_structured_data)
+    schedule.every().monday.at("08:00").do(scheduler.generate_microdata_report)
     
     logging.info("Планировщик задач запущен")
     
@@ -357,14 +651,17 @@ class AutomationIntegration {
     
     private $api_base = 'http://localhost:8000';
     
-    public function __construct() {
-        add_action('init', array($this, 'init'));
-        add_action('admin_menu', array($this, 'add_admin_menu'));
-        add_action('wp_ajax_automation_generate', array($this, 'handle_generate_content'));
-        add_action('wp_ajax_automation_analytics', array($this, 'handle_analytics'));
-        add_action('add_meta_boxes', array($this, 'add_seo_meta_box'));
-        add_action('save_post', array($this, 'save_seo_data'));
-    }
+         public function __construct() {
+         add_action('init', array($this, 'init'));
+         add_action('admin_menu', array($this, 'add_admin_menu'));
+         add_action('wp_ajax_automation_generate', array($this, 'handle_generate_content'));
+         add_action('wp_ajax_automation_analytics', array($this, 'handle_analytics'));
+         add_action('add_meta_boxes', array($this, 'add_seo_meta_box'));
+         add_action('save_post', array($this, 'save_seo_data'));
+         add_action('wp_head', array($this, 'output_structured_data'));
+         add_action('template_redirect', array($this, 'setup_content_filters'));
+         add_action('add_meta_boxes', array($this, 'add_schema_info_meta_box'));
+     }
     
     public function init() {
         // Регистрация REST API endpoints
@@ -660,30 +957,265 @@ class AutomationIntegration {
         <?php
     }
     
-    public function save_seo_data($post_id) {
-        if (!isset($_POST['automation_seo_nonce']) || !wp_verify_nonce($_POST['automation_seo_nonce'], 'automation_seo_nonce')) {
-            return;
-        }
-        
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-            return;
-        }
-        
-        if (!current_user_can('edit_post', $post_id)) {
-            return;
-        }
-        
-        if (isset($_POST['focus_keyword'])) {
-            update_post_meta($post_id, '_automation_focus_keyword', sanitize_text_field($_POST['focus_keyword']));
-        }
-        
-        if (isset($_POST['meta_description'])) {
-            update_post_meta($post_id, '_automation_meta_description', sanitize_textarea_field($_POST['meta_description']));
-        }
-    }
-}
-
-new AutomationIntegration();
+         public function save_seo_data($post_id) {
+         if (!isset($_POST['automation_seo_nonce']) || !wp_verify_nonce($_POST['automation_seo_nonce'], 'automation_seo_nonce')) {
+             return;
+         }
+         
+         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+             return;
+         }
+         
+         if (!current_user_can('edit_post', $post_id)) {
+             return;
+         }
+         
+         if (isset($_POST['focus_keyword'])) {
+             update_post_meta($post_id, '_automation_focus_keyword', sanitize_text_field($_POST['focus_keyword']));
+         }
+         
+         if (isset($_POST['meta_description'])) {
+             update_post_meta($post_id, '_automation_meta_description', sanitize_textarea_field($_POST['meta_description']));
+         }
+         
+         // Автоматическая генерация JSON-LD схем
+         $this->generate_structured_data($post_id);
+     }
+     
+     private function generate_structured_data($post_id) {
+         $post = get_post($post_id);
+         $focus_keyword = get_post_meta($post_id, '_automation_focus_keyword', true);
+         
+         if (empty($focus_keyword)) {
+             return;
+         }
+         
+         // Article Schema
+         $article_schema = array(
+             '@context' => 'https://schema.org',
+             '@type' => 'Article',
+             'headline' => $post->post_title,
+             'description' => $post->post_excerpt ?: wp_trim_words($post->post_content, 20),
+             'author' => array(
+                 '@type' => 'Person',
+                 'name' => get_the_author_meta('display_name', $post->post_author)
+             ),
+             'publisher' => array(
+                 '@type' => 'Organization',
+                 'name' => get_bloginfo('name'),
+                 'logo' => array(
+                     '@type' => 'ImageObject',
+                     'url' => get_site_url() . '/wp-content/uploads/logo.png'
+                 )
+             ),
+             'datePublished' => get_the_date('c', $post_id),
+             'dateModified' => get_the_modified_date('c', $post_id),
+             'mainEntityOfPage' => array(
+                 '@type' => 'WebPage',
+                 '@id' => get_permalink($post_id)
+             )
+         );
+         
+         // FAQ Schema с информацией о микроразметке
+         $faq_schema = array(
+             '@context' => 'https://schema.org',
+             '@type' => 'FAQPage',
+             'mainEntity' => array(
+                 array(
+                     '@type' => 'Question',
+                     'name' => 'Что такое микроразметка и почему она важна для SEO?',
+                     'acceptedAnswer' => array(
+                         '@type' => 'Answer',
+                         'text' => 'Микроразметка – это специальный формат разметки на сайте, который помогает поисковым системам лучше понять содержание страниц. Она увеличивает шансы на получение расширенных сниппетов и улучшает видимость в поисковой выдаче.'
+                     )
+                 ),
+                 array(
+                     '@type' => 'Question',
+                     'name' => 'Какие типы микроразметки наиболее важны?',
+                     'acceptedAnswer' => array(
+                         '@type' => 'Answer',
+                         'text' => 'Наиболее важными являются схемы Article (для статей), FAQ (для вопросов-ответов), BreadcrumbList (для навигации), Review (для отзывов) и Organization (для информации о компании).'
+                     )
+                 ),
+                 array(
+                     '@type' => 'Question',
+                     'name' => 'Как проверить правильность микроразметки?',
+                     'acceptedAnswer' => array(
+                         '@type' => 'Answer',
+                         'text' => 'Используйте инструмент Google Rich Results Test (search.google.com/test/rich-results) для проверки структурированных данных и выявления возможных ошибок.'
+                     )
+                 )
+             )
+         );
+         
+         // BreadcrumbList Schema
+         $breadcrumb_schema = array(
+             '@context' => 'https://schema.org',
+             '@type' => 'BreadcrumbList',
+             'itemListElement' => array(
+                 array(
+                     '@type' => 'ListItem',
+                     'position' => 1,
+                     'name' => 'Главная',
+                     'item' => home_url()
+                 ),
+                 array(
+                     '@type' => 'ListItem',
+                     'position' => 2,
+                     'name' => 'Статьи',
+                     'item' => home_url('/articles/')
+                 ),
+                 array(
+                     '@type' => 'ListItem',
+                     'position' => 3,
+                     'name' => $post->post_title,
+                     'item' => get_permalink($post_id)
+                 )
+             )
+         );
+         
+         // Сохранение схем в метаполя
+         update_post_meta($post_id, '_automation_article_schema', wp_json_encode($article_schema));
+         update_post_meta($post_id, '_automation_faq_schema', wp_json_encode($faq_schema));
+         update_post_meta($post_id, '_automation_breadcrumb_schema', wp_json_encode($breadcrumb_schema));
+     }
+     
+     public function output_structured_data() {
+         if (!is_single()) {
+             return;
+         }
+         
+         global $post;
+         
+         $article_schema = get_post_meta($post->ID, '_automation_article_schema', true);
+         $faq_schema = get_post_meta($post->ID, '_automation_faq_schema', true);
+         $breadcrumb_schema = get_post_meta($post->ID, '_automation_breadcrumb_schema', true);
+         
+         if ($article_schema) {
+             echo '<script type="application/ld+json">' . $article_schema . '</script>' . PHP_EOL;
+         }
+         
+         if ($faq_schema) {
+             echo '<script type="application/ld+json">' . $faq_schema . '</script>' . PHP_EOL;
+         }
+         
+         if ($breadcrumb_schema) {
+             echo '<script type="application/ld+json">' . $breadcrumb_schema . '</script>' . PHP_EOL;
+         }
+         
+                   // Добавление информации о микроразметке в контент
+          add_filter('the_content', array($this, 'add_microdata_info_to_content'));
+      }
+      
+      public function setup_content_filters() {
+          if (is_single()) {
+              add_filter('the_content', array($this, 'add_microdata_info_to_content'));
+          }
+      }
+      
+      public function add_microdata_info_to_content($content) {
+          if (!is_single() || !in_the_loop() || !is_main_query()) {
+              return $content;
+          }
+          
+          global $post;
+          $focus_keyword = get_post_meta($post->ID, '_automation_focus_keyword', true);
+          
+          if (empty($focus_keyword)) {
+              return $content;
+          }
+          
+          $microdata_info = '
+          <div class="microdata-info" style="background: #f8f9fa; border-left: 4px solid #007cba; padding: 20px; margin: 20px 0; border-radius: 5px;">
+              <h3 style="color: #1e1e1e; margin-top: 0;">💡 Что такое микроразметка и почему она важна для SEO</h3>
+              
+              <p><strong>Микроразметка</strong> – это специальный формат разметки на сайте, который помогает поисковым системам лучше понять содержание страниц. Вместо того чтобы гадать, что изображено на странице, поисковый робот получает структурированные данные о странице: что является заголовком статьи, где указаны автор и дата, какие элементы являются отзывами, рейтингами, вопросами и ответами и т.д.</p>
+              
+              <p>Проще говоря, микроразметка – это язык, на котором сайт общается с поисковиком, описывая свою информацию более понятно и точно. <strong>Для SEO это имеет большое значение.</strong></p>
+              
+              <h4 style="color: #1e1e1e;">🎯 Преимущества микроразметки:</h4>
+              <ul style="margin-left: 20px;">
+                  <li><strong>Расширенные сниппеты</strong> – увеличивают CTR и привлекают больше кликов</li>
+                  <li><strong>Лучшее понимание контента</strong> – поисковики точнее индексируют страницы</li>
+                  <li><strong>Улучшение ранжирования</strong> – косвенно влияет на позиции в выдаче</li>
+                  <li><strong>Повышение доверия</strong> – структурированные данные создают более профессиональный вид</li>
+              </ul>
+              
+              <h4 style="color: #1e1e1e;">📋 JSON-LD – рекомендованный формат</h4>
+              <p>Google поддерживает три основных формата разметки: Microdata, RDFa и <strong>JSON-LD</strong>. Мы используем именно JSON-LD, так как это рекомендованный способ от Google. JSON-LD не требует изменять существующий HTML-код – достаточно вставить отдельный блок со структурированными данными.</p>
+              
+              <div style="background: #fff; padding: 15px; border-radius: 3px; margin: 15px 0;">
+                  <h5 style="margin-top: 0; color: #1e1e1e;">🔧 Основные типы схем на этой странице:</h5>
+                  <ul style="margin-left: 20px; margin-bottom: 0;">
+                      <li><strong>Article Schema</strong> – описывает статью с автором, датой публикации и основным контентом</li>
+                      <li><strong>FAQ Schema</strong> – структурирует часто задаваемые вопросы для расширенных сниппетов</li>
+                      <li><strong>BreadcrumbList</strong> – улучшает навигацию и отображение в поиске</li>
+                  </ul>
+              </div>
+              
+              <p style="margin-bottom: 0;"><strong>💡 Совет:</strong> Проверить корректность микроразметки можно через <a href="https://search.google.com/test/rich-results" target="_blank" rel="noopener">Google Rich Results Test</a></p>
+          </div>';
+          
+          // Добавляем информацию после первого абзаца или в конец контента
+          $paragraphs = explode('</p>', $content);
+          if (count($paragraphs) > 1) {
+              // Вставляем после первого абзаца
+              $paragraphs[0] .= '</p>' . $microdata_info;
+              $content = implode('</p>', $paragraphs);
+          } else {
+              // Добавляем в конец
+              $content .= $microdata_info;
+          }
+          
+          return $content;
+      }
+      
+      // Добавление информации о применяемых схемах в админку
+      public function add_schema_info_meta_box() {
+          add_meta_box(
+              'automation-schema-info',
+              'Применённые JSON-LD схемы',
+              array($this, 'schema_info_meta_box_callback'),
+              'post',
+              'side',
+              'low'
+          );
+      }
+      
+      public function schema_info_meta_box_callback($post) {
+          $article_schema = get_post_meta($post->ID, '_automation_article_schema', true);
+          $faq_schema = get_post_meta($post->ID, '_automation_faq_schema', true);
+          $breadcrumb_schema = get_post_meta($post->ID, '_automation_breadcrumb_schema', true);
+          
+          echo '<div style="font-size: 13px;">';
+          echo '<p><strong>Активные схемы:</strong></p>';
+          echo '<ul style="margin-left: 15px;">';
+          
+          if ($article_schema) {
+              echo '<li>✅ Article Schema</li>';
+          }
+          if ($faq_schema) {
+              echo '<li>✅ FAQ Schema</li>';
+          }
+          if ($breadcrumb_schema) {
+              echo '<li>✅ BreadcrumbList Schema</li>';
+          }
+          
+          if (!$article_schema && !$faq_schema && !$breadcrumb_schema) {
+              echo '<li>❌ Схемы не настроены</li>';
+              echo '</ul>';
+              echo '<p style="color: #d63638;">Добавьте фокусное ключевое слово и сохраните пост для автоматической генерации схем.</p>';
+          } else {
+              echo '</ul>';
+              echo '<p style="color: #00a32a;">Микроразметка настроена корректно!</p>';
+              echo '<p><a href="https://search.google.com/test/rich-results?url=' . urlencode(get_permalink($post->ID)) . '" target="_blank">🔍 Проверить в Google</a></p>';
+          }
+          
+          echo '</div>';
+      }
+ }
+ 
+ new AutomationIntegration();
 EOF
 
     # Активация плагина

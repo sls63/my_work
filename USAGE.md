@@ -69,6 +69,43 @@ curl -X POST "http://localhost:8000/seo/optimize" \
   }'
 ```
 
+### Генерация специализированных JSON-LD схем
+
+```bash
+# Схема для игры
+curl -X POST "http://localhost:8000/schema/generate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema_type": "game",
+    "title": "Aviator",
+    "description": "Популярная краш-игра с простыми правилами",
+    "game_genre": "Casino Game",
+    "developer": "Spribe",
+    "rating": 4.7
+  }'
+
+# Схема для обзора
+curl -X POST "http://localhost:8000/schema/generate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema_type": "review",
+    "title": "Обзор казино Vulkan",
+    "description": "Подробный обзор игровой платформы",
+    "rating": 4.2,
+    "review_body": "Казино предлагает широкий выбор игр и быстрые выплаты"
+  }'
+
+# Схема для организации
+curl -X POST "http://localhost:8000/schema/generate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schema_type": "organization",
+    "title": "Казино XYZ",
+    "description": "Лицензированное онлайн казино",
+    "rating": 4.5
+  }'
+```
+
 ## Использование WordPress плагина
 
 1. Войдите в админку WordPress
@@ -87,6 +124,29 @@ curl -X POST "http://localhost:8000/seo/optimize" \
    - **Длина статьи**: выберите подходящий размер
 3. Нажмите **Генерировать контент**
 4. Дождитесь завершения и проверьте результат
+
+### Автоматическая микроразметка
+
+Система автоматически добавляет информацию о микроразметке во все создаваемые статьи:
+
+1. **Что такое микроразметка** - подробное объяснение концепции
+2. **JSON-LD схемы** - автоматическая генерация структурированных данных
+3. **SEO преимущества** - объяснение влияния на поисковую оптимизацию
+
+#### Проверка микроразметки
+
+1. Перейдите в редактирование любого поста
+2. В боковой панели найдите блок "Применённые JSON-LD схемы"
+3. Нажмите "🔍 Проверить в Google" для валидации
+
+#### Доступные типы схем
+
+- **Article Schema** - для статей и блогов
+- **FAQ Schema** - для часто задаваемых вопросов
+- **BreadcrumbList** - для навигационных цепочек
+- **VideoGame Schema** - для страниц игр
+- **Review Schema** - для обзоров и рейтингов
+- **Organization Schema** - для информации о компаниях
 
 ## Мониторинг системы
 
