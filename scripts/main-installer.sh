@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Главный скрипт автоматизации установки WordPress + ZennoPoster + Cloudflare + Grafana
+# Главный скрипт автоматизации установки WordPress + Cloudflare + Grafana
 # Автор: Automation System
 # Версия: 1.0
 
@@ -163,7 +163,7 @@ setup_security() {
 # Основная функция установки
 main() {
     print_info "=== Запуск системы автоматизации установки ==="
-    print_info "Компоненты: WordPress + ZennoPoster + Cloudflare + Grafana"
+    print_info "Компоненты: WordPress + Система автоматизации + Cloudflare + Grafana"
     
     check_root
     load_env
@@ -182,8 +182,8 @@ main() {
     print_info "Настройка Cloudflare..."
     bash "$(dirname "$0")/setup-cloudflare.sh"
     
-    print_info "Установка ZennoPoster..."
-    bash "$(dirname "$0")/install-zennoposter.sh"
+    print_info "Настройка автоматизации контента..."
+    bash "$(dirname "$0")/setup-automation.sh"
     
     print_success "=== Установка завершена успешно! ==="
     print_info "Доступные сервисы:"

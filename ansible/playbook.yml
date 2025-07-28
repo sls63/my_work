@@ -1,0 +1,93 @@
+---
+- name: Deploy WordPress + Cloudflare + Grafana Automation System
+  hosts: all
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    
+  vars_files:
+    - vars/main.yml
+    
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        
+    - name: Install base packages
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - unzip
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - lsb-release
+          - jq
+          - htop
+          - ufw
+          - fail2ban
+        state: present
+
+  tasks:
+    - name: Setup system security
+      include_tasks: tasks/security.yml
+      
+    - name: Install Docker
+      include_tasks: tasks/docker.yml
+      
+    - name: Setup WordPress
+      include_tasks: tasks/wordpress.yml
+      
+    - name: Setup monitoring stack
+      include_tasks: tasks/monitoring.yml
+      
+    - name: Setup content automation
+      include_tasks: tasks/automation.yml
+      
+    - name: Configure Cloudflare
+      include_tasks: tasks/cloudflare.yml
+      
+    - name: Setup backup system
+      include_tasks: tasks/backup.yml
+      
+  post_tasks:
+    - name: Verify services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - mysql
+        - redis-server
+        - automation-api
+        - automation-worker
+        - automation-scheduler
+        
+    - name: Display deployment summary
+      debug:
+        msg:
+          - "=== Deployment Complete ==="
+          - "WordPress: https://{{ domain_name }}"
+          - "Grafana: https://{{ domain_name }}:{{ grafana_port }}"
+          - "Automation API: http://{{ ansible_default_ipv4.address }}:8000"
+          - "Admin credentials stored in /opt/credentials/"
+          
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+        
+    - name: restart mysql
+      systemd:
+        name: mysql
+        state: restarted
+        
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
