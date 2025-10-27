@@ -1,0 +1,109 @@
+---
+# Основные настройки системы
+domain_name: "{{ lookup('env', 'DOMAIN_NAME') | default('example.com') }}"
+admin_email: "{{ lookup('env', 'ADMIN_EMAIL') | default('admin@example.com') }}"
+
+# WordPress настройки
+wp_db_name: "{{ lookup('env', 'WP_DB_NAME') | default('wordpress') }}"
+wp_db_user: "{{ lookup('env', 'WP_DB_USER') | default('wp_user') }}"
+wp_db_password: "{{ lookup('env', 'WP_DB_PASSWORD') | default('secure_password_123') }}"
+wp_db_root_password: "{{ lookup('env', 'WP_DB_ROOT_PASSWORD') | default('root_password_123') }}"
+wp_admin_user: "{{ lookup('env', 'WP_ADMIN_USER') | default('admin') }}"
+wp_admin_password: "{{ lookup('env', 'WP_ADMIN_PASSWORD') | default('admin_password_123') }}"
+wp_title: "{{ lookup('env', 'WP_TITLE') | default('My WordPress Site') }}"
+
+# Cloudflare настройки
+cloudflare_api_token: "{{ lookup('env', 'CLOUDFLARE_API_TOKEN') }}"
+cloudflare_zone_id: "{{ lookup('env', 'CLOUDFLARE_ZONE_ID') }}"
+cloudflare_email: "{{ lookup('env', 'CLOUDFLARE_EMAIL') }}"
+
+# Мониторинг настройки
+grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') | default('grafana_admin_password') }}"
+prometheus_retention: "{{ lookup('env', 'PROMETHEUS_RETENTION') | default('15d') }}"
+grafana_port: "{{ lookup('env', 'GRAFANA_PORT') | default('3000') }}"
+prometheus_port: "{{ lookup('env', 'PROMETHEUS_PORT') | default('9090') }}"
+
+# Сетевые настройки
+nginx_http_port: "{{ lookup('env', 'NGINX_HTTP_PORT') | default('80') }}"
+nginx_https_port: "{{ lookup('env', 'NGINX_HTTPS_PORT') | default('443') }}"
+
+# SSL настройки
+letsencrypt_email: "{{ lookup('env', 'LETSENCRYPT_EMAIL') | default('ssl@example.com') }}"
+ssl_staging: "{{ lookup('env', 'SSL_STAGING') | default('false') }}"
+
+# Безопасность
+ufw_enable: "{{ lookup('env', 'UFW_ENABLE') | default('true') }}"
+fail2ban_enable: "{{ lookup('env', 'FAIL2BAN_ENABLE') | default('true') }}"
+ssh_port: "{{ lookup('env', 'SSH_PORT') | default('22') }}"
+
+# Автоматизация контента
+content_automation_enabled: "{{ lookup('env', 'CONTENT_AUTOMATION_ENABLED') | default('true') }}"
+content_api_key: "{{ lookup('env', 'CONTENT_API_KEY') | default('your_content_api_key') }}"
+
+# Резервное копирование
+backup_schedule: "{{ lookup('env', 'BACKUP_SCHEDULE') | default('0 2 * * *') }}"
+backup_retention_days: "{{ lookup('env', 'BACKUP_RETENTION_DAYS') | default('30') }}"
+
+# Директории
+wordpress_root: "/var/www/{{ domain_name }}"
+automation_root: "/opt/automation"
+monitoring_root: "/opt/monitoring"
+backup_root: "/opt/backups"
+
+# Пользователи и группы
+web_user: "www-data"
+web_group: "www-data"
+
+# PHP настройки
+php_version: "8.1"
+php_max_execution_time: 300
+php_memory_limit: "256M"
+php_upload_max_filesize: "64M"
+php_post_max_size: "64M"
+
+# MySQL настройки
+mysql_version: "8.0"
+mysql_innodb_buffer_pool_size: "256M"
+mysql_max_connections: 200
+
+# Redis настройки
+redis_maxmemory: "256mb"
+redis_maxmemory_policy: "allkeys-lru"
+
+# Nginx настройки
+nginx_worker_processes: "auto"
+nginx_worker_connections: 1024
+nginx_gzip: true
+nginx_client_max_body_size: "64M"
+
+# SSL/TLS настройки
+ssl_protocols: "TLSv1.2 TLSv1.3"
+ssl_ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384"
+ssl_prefer_server_ciphers: true
+
+# Мониторинг настройки
+prometheus_scrape_interval: "15s"
+prometheus_evaluation_interval: "15s"
+grafana_allow_signup: false
+grafana_smtp_enabled: true
+
+# Автоматизация настройки
+automation_api_port: 8000
+automation_metrics_port: 9105
+automation_max_workers: 4
+automation_redis_db: 0
+
+# Логирование
+log_level: "INFO"
+log_retention_days: 30
+syslog_enabled: true
+
+# Производительность
+enable_opcache: true
+opcache_memory_consumption: 128
+opcache_max_accelerated_files: 4000
+
+# Кеширование
+enable_redis_cache: true
+redis_cache_ttl: 3600
+browser_cache_ttl: 31536000

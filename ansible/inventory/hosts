@@ -1,0 +1,47 @@
+[wordpress_servers]
+# Замените на ваши реальные IP адреса или имена хостов
+# production ansible_host=192.168.1.100 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+# staging ansible_host=192.168.1.101 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_rsa
+localhost ansible_connection=local
+
+[wordpress_servers:vars]
+# Общие переменные для всех серверов WordPress
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[production]
+# Продакшен серверы
+# prod-web-01 ansible_host=10.0.1.10
+# prod-web-02 ansible_host=10.0.1.11
+
+[staging]
+# Тестовые серверы
+# staging-web-01 ansible_host=10.0.2.10
+
+[monitoring]
+# Серверы мониторинга (могут быть отдельными)
+# monitoring-01 ansible_host=10.0.3.10
+
+[all:vars]
+# Глобальные переменные
+# Можно переопределить в group_vars или host_vars
+domain_suffix=.local
+timezone=UTC
+
+# SSH настройки
+ansible_ssh_port=22
+ansible_become=yes
+ansible_become_method=sudo
+
+# Группы по ролям
+[web:children]
+wordpress_servers
+
+[database:children]
+wordpress_servers
+
+[cache:children]
+wordpress_servers
+
+[automation:children]
+wordpress_servers
